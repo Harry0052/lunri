@@ -1,0 +1,8 @@
+SYNTHETIC INVOICE. Not a real invoice, vendor, person, or payment.
+Seller: Example Paper Co
+Invoice number: SYN-2026-0002
+Reference 100.00 USD is not the amount due.
+Account 999
+Quantity 3 at 4.00 USD
+Subtotal: 12.00 USD
+Total: 12.96 USD

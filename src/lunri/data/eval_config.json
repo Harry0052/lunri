@@ -1,0 +1,9 @@
+{
+  "quality_target": 0.8,
+  "minimum_attempts_for_decision": 30,
+  "small_model": "qwen2.5:0.5b",
+  "large_model": "qwen2.5:1.5b",
+  "temperature": 0,
+  "timeout_seconds": 120,
+  "notes": "Target and model tags were chosen before any held-out run in this repository. qwen2.5:0.5b is listed as 398MB and qwen2.5:1.5b as 986MB on the Ollama library page retrieved 2026-11-18. That page says every Qwen2.5 size except 3B and 72B is Apache 2.0. Digests are unknown until a pull. The 3B and 72B tags are not used."
+}

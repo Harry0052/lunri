@@ -1,0 +1,21 @@
+{
+  "synthetic": true,
+  "notice": "Independent labels for tests. The mock model does not read this file.",
+  "cases": {
+    "syn-001": {
+      "currency": "USD",
+      "invoice_number": "SYN-2026-0001",
+      "total_cents": 2105
+    },
+    "syn-002": {
+      "currency": "USD",
+      "invoice_number": "SYN-2026-0002",
+      "total_cents": 1296
+    },
+    "syn-003": {
+      "currency": null,
+      "invoice_number": "SYN-2026-0003",
+      "total_cents": null
+    }
+  }
+}

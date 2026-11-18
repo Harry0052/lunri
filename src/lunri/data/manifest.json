@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "notice": "Synthetic invoice text. Not a real invoice, vendor, person, or payment.",
+  "cases": [
+    {"id": "syn-001", "file": "invoices/syn-001.txt", "role": "success"},
+    {"id": "syn-002", "file": "invoices/syn-002.txt", "role": "success"},
+    {"id": "syn-003", "file": "invoices/syn-003.txt", "role": "malformed-input"}
+  ]
+}

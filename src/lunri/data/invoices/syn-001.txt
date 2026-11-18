@@ -1,0 +1,10 @@
+SYNTHETIC INVOICE. Not a real invoice, vendor, person, or payment.
+Seller: Fixture Goods LLC
+Buyer: Sample Buyer Inc
+Invoice number: SYN-2026-0001
+Date: 2026-11-01
+Phone: 555-0100
+Order: 42
+Subtotal: 19.49 USD
+Tax: 1.56 USD
+Total: 21.05 USD

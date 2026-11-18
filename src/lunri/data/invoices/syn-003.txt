@@ -1,0 +1,4 @@
+SYNTHETIC INVOICE. Not a real invoice, vendor, person, or payment.
+Seller: Broken Fixture
+Invoice number: SYN-2026-0003
+Amount due: see attachment
