@@ -31,3 +31,22 @@ decision insufficient evidence. Inference is SIMULATED
 **Open issues:** Ollama was not on `PATH` during the probe, so model digests are unknown. CodeCarbon, Zeus, Intelligence Per Watt, and local_bench were not executed; their live meter agreement with a wall plug is unresolved. That does not cover the acceptance case, so it does not change the decision.
 
 **Next phase:** P02
+
+## Owner direction — prompt comparison
+
+**Phase and status:** PASS
+
+**Files changed:** prompt flow, local settings UI, cited watt-hour table, invoice fixture checker, tests, README, and CI. Existing invoice commands stay.
+
+**Commands and results:**
+
+- `PYTHONPATH=src python3 -m unittest discover -s tests` → `Ran 60 tests` and `OK`.
+- `lunri prompt --demo --input-usd-per-million 1 --output-usd-per-million 1` exited 0 in 0.0046s. Optimized prompt: `I need a summary of the notes. the summary must be under 50 words.` Mock-small delta: input tokens 48, output tokens 2, cost `0.000050` USD from the `$1` rates on the command line, watt-hours `0.000956` from the cited 1.72 J/output-token A100 fit. Report label says it is not a measurement of this computer.
+- `lunri fixture` accepted the packaged JSONL. `lunri fixture --path src/lunri/data/invalid/missing-fields.jsonl` exited 2 with `synthetic must be true`.
+- Settings UI at `http://127.0.0.1:8766/` saved a Google provider named Desk. The page status was `Saved. The key is stored locally and is not shown here.` The key text was not in the page. Remove cleared `settings.json` to an empty provider list. Tab moved focus to the provider control. A 360px viewport still showed the form.
+
+**Artifact paths:** `runs/prompt-comparison.json` (gitignored), `src/lunri/data/energy_assumptions.json`, `docs/grokbot-progress.md`
+
+**Open issues:** Live provider calls are implemented and covered with a local fake server. This session did not call OpenRouter, Anthropic, Google, or a paid API. Ollama is optional and was not required for the demo. Invoice energy on this host remains unmeasured.
+
+**Next phase:** publish on a pull request, wait for GitHub Actions, tag the next free version. Do not merge.

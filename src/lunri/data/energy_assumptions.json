@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "notice": "Published measurements of other hardware. Multiplying them by a token count does not measure the computer running Lunri.",
+  "assumptions": [
+    {
+      "id": "a100-output-marginal",
+      "joules_per_output_token": 1.72,
+      "joules_per_input_token": null,
+      "input_policy": "Input tokens are not converted. The cited fit attributes almost all of the measured energy to output length.",
+      "boundary": "One NVIDIA A100. nvidia-smi power minus a 10-second idle baseline. Net GPU energy only, not the wall plug.",
+      "source": "https://arxiv.org/abs/2512.01644",
+      "detail": "Section 4.3.1, accessed 2026-11-23. The paper's output-length fit is E = 1.72 * L_out - 6.48 joules. Lunri uses the stated marginal 1.72 J per generated token and does not subtract the intercept.",
+      "applies_to_models": []
+    },
+    {
+      "id": "h100-llama31-8b-batch64",
+      "joules_per_output_token": 0.12,
+      "joules_per_input_token": null,
+      "input_policy": "The cited figure is energy per output token. Input tokens are not converted.",
+      "boundary": "Llama 3.1 8B on NVIDIA H100 GPUs, batch size 64, vLLM 0.11.1. GPU energy, not a wall-plug reading.",
+      "source": "https://ml.energy/blog/measurement/energy/llm-inference-energy-a-longitudinal-analysis/",
+      "detail": "Accessed 2026-11-23. The page states that the 8B model at batch size 64 fell from 0.20 J to 0.12 J per token on the newer vLLM stack. Lunri uses 0.12.",
+      "applies_to_models": ["llama3.1:8b", "llama-3.1-8b", "meta-llama/llama-3.1-8b"]
+    }
+  ]
+}

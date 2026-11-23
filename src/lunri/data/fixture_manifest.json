@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "name": "lunri-synthetic-invoices",
+  "seed": 20261118,
+  "generator": "lunri.dataset.generate",
+  "rows": 63,
+  "sha256": "98f198b6259aeeb1beffbcfca97f5f03a245cbababd23017a51702c640c596bc",
+  "license": "MIT",
+  "source_url": null,
+  "source_note": "Generated in this repository by lunri.dataset.generate. No remote dataset is fetched at run time.",
+  "terms": "Synthetic invoice text. Not a real invoice, vendor, person, or payment. Redistributable under the MIT license with this repository.",
+  "attribution": "Written for Lunri. Copyright (c) 2026 Harry Malhi.",
+  "splits": {"dev": 30, "heldout": 30, "smoke": 3},
+  "family_leakage": "Each family is assigned to one split in lunri.dataset.FAMILIES. The fixture checker rejects a family that appears in two splits.",
+  "invalid_example": "data/invalid/missing-fields.jsonl"
+}

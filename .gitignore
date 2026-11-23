@@ -13,3 +13,5 @@ runs/
 .mypy_cache/
 .ruff_cache/
 .DS_Store
+settings.json
+.lunri/

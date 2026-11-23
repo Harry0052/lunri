@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lunri"
 version = "0.2.0"
-description = "Local invoice-text benchmark with a mock path, an Ollama adapter, and an optional Apple Silicon energy sample."
+description = "Compare an original prompt with a shorter one, and keep a local invoice benchmark. Mock mode needs no API key."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -19,4 +19,4 @@ lunri = "lunri.cli:app"
 where = ["src"]
 
 [tool.setuptools.package-data]
-lunri = ["data/*.json", "data/*.jsonl", "data/invoices/*.txt"]
+lunri = ["data/*.json", "data/*.jsonl", "data/invoices/*.txt", "data/invalid/*.jsonl", "data/prompts/*.txt"]
