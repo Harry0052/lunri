@@ -34,7 +34,17 @@ class EvalCliTests(unittest.TestCase):
     def test_missing_ollama_is_not_verified(self) -> None:
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
-            code = main(["eval", "--backend", "ollama", "--split", "smoke"])
+            code = main(
+                [
+                    "eval",
+                    "--backend",
+                    "ollama",
+                    "--split",
+                    "smoke",
+                    "--base-url",
+                    "http://127.0.0.1:9",
+                ]
+            )
         self.assertEqual(code, 2)
         self.assertIn("NOT YET VERIFIED", stderr.getvalue())
 

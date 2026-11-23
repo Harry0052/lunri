@@ -10,45 +10,71 @@ COMBINED_RE = re.compile(r"Combined Power \(CPU \+ GPU \+ ANE\):\s*([0-9]+(?:\.[
 CPU_RE = re.compile(r"^CPU Power:\s*([0-9]+(?:\.[0-9]+)?)\s*mW\s*$", re.MULTILINE)
 
 
-def unavailable(reason: str) -> dict:
+def unavailable(reason: str, *, trace_status: str = "unavailable") -> dict:
     return {
         "aggregate_joules": None,
         "boundary": None,
+        "canonical_unit": None,
         "derived_per_attempt_joules": None,
         "estimate": False,
         "interval_s": None,
         "label": "UNAVAILABLE",
         "measured": False,
         "method": None,
+        "raw_counters": None,
+        "raw_unit": None,
         "reason": reason,
         "samples": 0,
+        "trace_status": trace_status,
     }
 
 
-def measured_aggregate(joules: float, *, boundary: str, method: str, interval_s: float, samples: int) -> dict:
+def measured_aggregate(joules: float, *, boundary: str, method: str, interval_s: float | None, samples: int) -> dict:
     return {
         "aggregate_joules": joules,
         "boundary": boundary,
+        "canonical_unit": "J",
         "derived_per_attempt_joules": None,
         "estimate": False,
         "interval_s": interval_s,
         "label": "MEASURED",
         "measured": True,
         "method": method,
+        "raw_counters": None,
+        "raw_unit": "mW",
         "reason": "aggregate window, not a per-task meter reading",
         "samples": samples,
+        "trace_status": "complete",
     }
+
+
+def energy_accountable(energy: dict) -> bool:
+    """True only for a complete measured or simulated window with a joule total."""
+    if energy.get("label") not in {"MEASURED", "SIMULATED"}:
+        return False
+    if energy.get("aggregate_joules") is None:
+        return False
+    return energy.get("trace_status", "complete") == "complete"
 
 
 def with_derived(reading: dict, attempts: int) -> dict:
     """Attach a batch average without pretending each task was metered."""
     updated = dict(reading)
+    label = reading.get("label")
+    if "trace_status" not in updated:
+        updated["trace_status"] = "complete" if label in {"MEASURED", "SIMULATED"} else "unavailable"
     joules = reading.get("aggregate_joules")
-    if reading.get("label") == "MEASURED" and joules is not None and attempts > 0:
+    if energy_accountable(updated) and attempts > 0 and joules is not None:
         updated["derived_per_attempt_joules"] = joules / attempts
-        updated["reason"] = (
-            "aggregate window divided by attempts. This is not a per-task measurement."
-        )
+        if label == "SIMULATED":
+            updated["reason"] = (
+                "SIMULATED aggregate. The window includes failed calls, validation, retries, "
+                "and fallbacks. Not a physical measurement."
+            )
+        else:
+            updated["reason"] = (
+                "aggregate window divided by attempts. This is not a per-task measurement."
+            )
     return updated
 
 
@@ -79,6 +105,9 @@ class ScriptedMeter:
         )
         reading["label"] = "SIMULATED"
         reading["measured"] = False
+        reading["raw_counters"] = [self.joules]
+        reading["raw_unit"] = "J"
+        reading["trace_status"] = "complete"
         reading["reason"] = "HYPOTHETICAL injected meter for a test. Not a physical result."
         return value, reading
 
@@ -99,21 +128,37 @@ def integrate_joules(samples_mw: list[float], interval_s: float) -> float | None
     return sum(watts) * interval_s
 
 
-def reading_from_powermetrics_text(text: str, interval_s: float) -> dict:
+def reading_from_powermetrics_text(
+    text: str,
+    interval_s: float,
+    expected_samples: int | None = None,
+) -> dict:
     combined = parse_combined_mw(text)
     if combined:
+        if expected_samples is not None and len(combined) < expected_samples:
+            return unavailable(
+                f"partial powermetrics trace ({len(combined)} of {expected_samples} samples); energy not measured",
+                trace_status="partial",
+            )
         joules = integrate_joules(combined, interval_s)
         if joules is None:
             return unavailable("powermetrics combined samples could not be integrated")
-        return measured_aggregate(
+        reading = measured_aggregate(
             joules,
             boundary="apple-silicon-soc-cpu-gpu-ane",
             method="powermetrics combined power",
             interval_s=interval_s,
             samples=len(combined),
         )
+        reading["raw_counters"] = combined
+        return reading
     cpu = parse_cpu_mw(text)
     if cpu:
+        if expected_samples is not None and len(cpu) < expected_samples:
+            return unavailable(
+                f"partial powermetrics trace ({len(cpu)} of {expected_samples} samples); energy not measured",
+                trace_status="partial",
+            )
         joules = integrate_joules(cpu, interval_s)
         if joules is None:
             return unavailable("powermetrics CPU samples could not be integrated")
@@ -124,9 +169,37 @@ def reading_from_powermetrics_text(text: str, interval_s: float) -> dict:
             interval_s=interval_s,
             samples=len(cpu),
         )
+        reading["raw_counters"] = cpu
         reading["reason"] = "CPU sampler only. GPU, ANE, and the rest of the machine are not included."
         return reading
     return unavailable("powermetrics output had no Combined Power or CPU Power sample")
+
+
+def reading_from_cumulative_microjoules(
+    samples: list[int],
+    *,
+    expected_intervals: int,
+    boundary: str = "rapl-package",
+) -> dict:
+    """Integrate a cumulative microjoule counter. A short or reset trace is unmeasured."""
+    if expected_intervals < 1 or len(samples) < expected_intervals + 1:
+        return unavailable("partial meter trace; energy not measured", trace_status="partial")
+    window = [int(sample) for sample in samples[: expected_intervals + 1]]
+    total = 0
+    for start, end in zip(window, window[1:]):
+        if end < start:
+            return unavailable("meter counter reset; energy not measured", trace_status="reset")
+        total += end - start
+    reading = measured_aggregate(
+        total / 1_000_000,
+        boundary=boundary,
+        method="cumulative microjoule delta",
+        interval_s=None,
+        samples=expected_intervals,
+    )
+    reading["raw_counters"] = window
+    reading["raw_unit"] = "uJ"
+    return reading
 
 
 def powermetrics_command(samples: int, interval_ms: int = 1000) -> list[str]:
@@ -182,4 +255,8 @@ class HostMeter:
             return value, unavailable(
                 "powermetrics produced no output. sudo -n does not prompt for a password."
             )
-        return value, reading_from_powermetrics_text(stdout, self.interval_s)
+        return value, reading_from_powermetrics_text(
+            stdout,
+            self.interval_s,
+            expected_samples=self.samples,
+        )

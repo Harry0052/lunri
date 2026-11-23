@@ -2,7 +2,7 @@
 
 Lunri is a local benchmark. Changes should keep reports honest.
 
-- Do not commit API keys, passwords, real invoices, or model weights.
+- Do not commit API keys, passwords, real invoices, model weights, or `settings.json`. Keys belong in `~/.config/lunri/` or `LUNRI_HOME`.
 - Do not label a mock run, an injected meter, or a hypothetical break-even figure as a measurement.
 - If energy was not sampled, leave joules null. Do not write zero.
 - Gold labels stay out of the model prompt. Add a test if a new prompt field could leak them.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import socket
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
@@ -44,6 +45,9 @@ class LineMockClient:
 
         return ModelResult(True, line_complete(prompt), None, 0.0, model)
 
+    def revision(self, model: str) -> dict:
+        return {"digest": None, "model": model, "source": "mock-deterministic"}
+
 
 class ScriptedClient:
     """Test double. ``handler(model, prompt)`` returns a ModelResult."""
@@ -55,9 +59,21 @@ class ScriptedClient:
         return self.handler(model, prompt, timeout)
 
 
+def require_loopback(base_url: str) -> str:
+    """Accept only an HTTP Ollama on this machine."""
+    parsed = urllib.parse.urlparse(base_url)
+    host = parsed.hostname
+    if parsed.scheme != "http" or host not in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError(
+            f"refusing model endpoint {base_url!r}. Lunri only contacts a loopback Ollama."
+        )
+    return base_url.rstrip("/")
+
+
 class OllamaClient:
     def __init__(self, base_url: str = DEFAULT_BASE):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = require_loopback(base_url)
+        self._revisions: dict[str, dict] = {}
 
     def ping(self, timeout: float = 2) -> tuple[bool, str]:
         try:
@@ -93,6 +109,34 @@ class OllamaClient:
         if not isinstance(content, str):
             content = json.dumps(content, sort_keys=True)
         return ModelResult(True, content, None, elapsed, model)
+
+    def revision(self, model: str) -> dict:
+        cached = self._revisions.get(model)
+        if cached is not None:
+            return cached
+        found = {"digest": None, "model": model, "source": "unavailable"}
+        try:
+            status, raw = _request(self.base_url + "/api/show", {"model": model}, 5)
+        except (OSError, TimeoutError):
+            self._revisions[model] = found
+            return found
+        if status != 200:
+            self._revisions[model] = found
+            return found
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._revisions[model] = found
+            return found
+        digest = payload.get("digest")
+        if not isinstance(digest, str) or not digest:
+            details = payload.get("details")
+            if isinstance(details, dict):
+                digest = details.get("digest")
+        if isinstance(digest, str) and digest:
+            found = {"digest": digest, "model": model, "source": "ollama"}
+        self._revisions[model] = found
+        return found
 
 
 def chat_body(model: str, prompt: str, temperature: float) -> dict:
